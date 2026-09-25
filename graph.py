@@ -14,7 +14,7 @@ class AgentState(TypedDict):
     sources: list
 
 
-def manager_node(state, chunks, metadata, index):
+def manager_node(state, chunks, metadata, index, model):
     question = state["question"]
     category = manager_agent(question)
 
@@ -26,18 +26,18 @@ def manager_node(state, chunks, metadata, index):
     }
 
     results = retrieve(
-        question, chunks, metadata, index,
+        question, chunks, metadata, index, model,
         department=department_map[category],
         top_k=5
     )
 
     context_parts = []
     sources = []
-
     for result in results:
         m = result["metadata"]
         context_parts.append(
-            f"\nSource:\n{m['source']}\n\nPage:\n{m['page']}\n\nDepartment:\n{m['department']}\n\nContent:\n{result['text']}\n"
+            f"\nSource:\n{m['source']}\n\nPage:\n{m['page']}\n\n"
+            f"Department:\n{m['department']}\n\nContent:\n{result['text']}\n"
         )
         sources.append(m)
 
@@ -55,19 +55,18 @@ def answer_node(state):
         "PROJECT": "Project specialist agent",
         "GENERAL": "General company knowledge agent"
     }
-    answer = generate_answer(
+    return {"answer": generate_answer(
         state["question"],
         state["context"],
         agent_name_map[state["category"]]
-    )
-    return {"answer": answer}
+    )}
 
 
-def create_graph(chunks, metadata, index):
+def create_graph(chunks, metadata, index, model):
     graph = StateGraph(AgentState)
 
     def manager_wrapper(state):
-        return manager_node(state, chunks, metadata, index)
+        return manager_node(state, chunks, metadata, index, model)
 
     graph.add_node("manager", manager_wrapper)
     graph.add_node("answer", answer_node)

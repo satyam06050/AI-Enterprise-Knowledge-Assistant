@@ -1,6 +1,6 @@
 import streamlit as st
 
-from rag import load_documents, create_chunks, build_index
+from rag import get_embedding_model, load_documents, create_chunks, build_index
 from graph import create_graph
 
 
@@ -21,13 +21,19 @@ if "messages" not in st.session_state:
 
 
 @st.cache_resource
+def load_model():
+    return get_embedding_model()
+
+
+@st.cache_resource
 def initialize_knowledge_base():
+    model = load_model()
     documents = load_documents("documents")
     if not documents:
-        raise ValueError("No PDF documents found.")
+        raise ValueError("No documents found in the documents/ folder.")
     chunks, metadata = create_chunks(documents)
-    index = build_index(chunks)
-    graph = create_graph(chunks, metadata, index)
+    index = build_index(chunks, model)
+    graph = create_graph(chunks, metadata, index, model)
     return documents, chunks, metadata, index, graph
 
 
@@ -70,7 +76,7 @@ if not st.session_state.initialized:
             st.session_state.graph = graph
             st.session_state.initialized = True
     except Exception as e:
-        st.warning("Please add PDF documents to the documents folder.")
+        st.warning("Please add documents to the documents/ folder.")
         st.info(f"Details: {e}")
 
 

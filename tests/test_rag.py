@@ -1,7 +1,7 @@
 import os
 import tempfile
 
-from rag import build_index, create_chunks, load_documents, retrieve
+from rag import build_index, create_chunks, get_embedding_model, load_documents, retrieve
 
 
 def test_load_documents_supports_text_files(tmp_path):
@@ -24,11 +24,12 @@ def test_retrieve_returns_relevant_chunk(tmp_path):
         encoding="utf-8",
     )
 
+    model = get_embedding_model()
     documents = load_documents(base_folder=str(tmp_path))
     chunks, metadata = create_chunks(documents, chunk_size=200, overlap=20)
-    index = build_index(chunks)
+    index = build_index(chunks, model)
 
-    result = retrieve("How do I deploy the service?", chunks, metadata, index, top_k=1)
+    result = retrieve("How do I deploy the service?", chunks, metadata, index, model, top_k=1)
 
     assert result
     assert "deploy" in result[0]["text"].lower()
