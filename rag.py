@@ -62,6 +62,21 @@ def load_pdf(
             )
 
     return documents
+
+
+def load_txt(file_path, department):
+    with open(file_path, encoding="utf-8") as f:
+        text = re.sub(r"\s+", " ", f.read()).strip()
+    if not text:
+        return []
+    return [{
+        "text": text,
+        "source": os.path.basename(file_path),
+        "page": 1,
+        "department": department
+    }]
+
+
 # ============================================================
 # LOAD ALL DOCUMENTS
 # ============================================================
@@ -91,25 +106,17 @@ def load_documents(
 
         for filename in os.listdir(folder):
 
-            if not filename.lower().endswith(
-                ".pdf"
-            ):
+            path = os.path.join(folder, filename)
+            lower = filename.lower()
 
+            if lower.endswith(".pdf"):
+                documents = load_pdf(path, department)
+            elif lower.endswith(".txt"):
+                documents = load_txt(path, department)
+            else:
                 continue
 
-            path = os.path.join(
-                folder,
-                filename
-            )
-
-            documents = load_pdf(
-                path,
-                department
-            )
-
-            all_documents.extend(
-                documents
-            )
+            all_documents.extend(documents)
 
     return all_documents
 

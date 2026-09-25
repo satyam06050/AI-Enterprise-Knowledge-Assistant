@@ -11,7 +11,7 @@ GROQ_API_KEY = os.getenv(
 )
 
 
-MODEL = "llama-3.3-70b-versatile"
+MODEL = "openai/gpt-oss-120b"
 
 
 if not GROQ_API_KEY:

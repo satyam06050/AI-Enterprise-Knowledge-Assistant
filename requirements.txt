@@ -7,3 +7,5 @@ sentence-transformers
 langgraph
 langchain-core
 numpy
+torchvision
+transformers==4.40.2
