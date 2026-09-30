@@ -2,9 +2,10 @@ import hashlib
 
 import streamlit as st
 
-from graph import UPLOADED_NOT_FOUND_MESSAGE, create_graph, create_uploaded_graph
+from graph import create_graph, create_uploaded_graph
 from rag import build_index, create_chunks, ingest_uploaded_document, load_documents
 
+UPLOADED_NOT_FOUND_MESSAGE = "I could not find this information in the uploaded document."
 
 st.set_page_config(page_title="Enterprise Knowledge Assistant", layout="wide")
 
