@@ -100,3 +100,36 @@ Keep the answer professional and concise.
         temperature=0.1
     )
     return response.choices[0].message.content
+
+
+def generate_uploaded_answer(question, context):
+    prompt = f"""
+You answer questions about one uploaded document.
+
+Use ONLY the supplied uploaded-document context. Do not use outside knowledge.
+
+If the context does not contain the answer, respond with exactly:
+
+"I could not find this information in the uploaded document."
+
+Do not invent facts, dates, policies, people, or procedures.
+
+USER QUESTION:
+
+{question}
+
+UPLOADED DOCUMENT CONTEXT:
+
+{context}
+
+Give a concise, professional answer grounded in the context.
+"""
+    response = client.chat.completions.create(
+        model=MODEL,
+        messages=[
+            {"role": "system", "content": "You are a grounded document question-answering assistant."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.1
+    )
+    return response.choices[0].message.content.strip()

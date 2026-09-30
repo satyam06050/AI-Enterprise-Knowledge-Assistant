@@ -2,9 +2,10 @@ from typing import TypedDict
 
 from langgraph.graph import StateGraph, START, END
 
-from agents import manager_agent, generate_answer
+from agents import manager_agent, generate_answer, generate_uploaded_answer
 from rag import retrieve
 
+UPLOADED_NOT_FOUND_MESSAGE = "I could not find this information in the uploaded document."
 
 class AgentState(TypedDict):
     question: str
@@ -74,5 +75,54 @@ def create_graph(chunks, metadata, index):
     graph.add_edge(START, "manager")
     graph.add_edge("manager", "answer")
     graph.add_edge("answer", END)
+
+    return graph.compile()
+
+
+def uploaded_manager_node(state, chunks, metadata, index, document_id):
+    results = retrieve(
+        state["question"],
+        chunks,
+        metadata,
+        index,
+        document_id=document_id,
+        top_k=5,
+    )
+
+    context_parts = []
+    sources = []
+    for result in results:
+        source = result["metadata"]
+        location = f"Page {source['page']}" if source.get("page") else f"Row {source['row']}" if source.get("row") else "Document"
+        context_parts.append(
+            f"\nSource: {source['source']}\nLocation: {location}\nContent: {result['text']}\n"
+        )
+        sources.append(source)
+
+    return {"context": "\n".join(context_parts), "sources": sources}
+
+
+def uploaded_answer_node(state):
+    if not state["context"].strip():
+        return {"answer": UPLOADED_NOT_FOUND_MESSAGE}
+
+    answer = generate_uploaded_answer(state["question"], state["context"])
+    if UPLOADED_NOT_FOUND_MESSAGE.lower() in answer.lower():
+        return {"answer": UPLOADED_NOT_FOUND_MESSAGE}
+    return {"answer": answer}
+
+
+def create_uploaded_graph(chunks, metadata, index, document_id):
+    """Build a LangGraph Q&A path constrained to one session-uploaded document."""
+    graph = StateGraph(AgentState)
+
+    def manager_wrapper(state):
+        return uploaded_manager_node(state, chunks, metadata, index, document_id)
+
+    graph.add_node("retrieve_uploaded", manager_wrapper)
+    graph.add_node("answer_uploaded", uploaded_answer_node)
+    graph.add_edge(START, "retrieve_uploaded")
+    graph.add_edge("retrieve_uploaded", "answer_uploaded")
+    graph.add_edge("answer_uploaded", END)
 
     return graph.compile()
